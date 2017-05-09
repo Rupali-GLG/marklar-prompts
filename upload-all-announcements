@@ -1,0 +1,9 @@
+#!/bin/bash
+#!/usr/bin/env bash
+
+
+src='../prompts/newClientcopy/*'
+for f in $src
+do
+    ( ./upload_client_announcement -s $f -c `basename "$f"`)
+done

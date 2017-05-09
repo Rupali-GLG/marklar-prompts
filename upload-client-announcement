@@ -43,8 +43,12 @@ upload_file () {
             mkdir "$localFolder/$lang"
         fi
 
-        #copy file to local folder
+        #copy file to local folder and push it to gitgub
         cp $source "$localFolder/$lang/$destFile"
+        git add "$localFolder/$lang/$destFile"
+        # git commit -m "adding $destFile to $dest"
+        #git push origin master
+
         # aws s3 cp $source $dest$destFile --dryrun --exclude "*" --include "*.mp3" --recursive --profile marklar # aws for folder upload
         aws s3 cp $source "s3://marklar/$dest$destFile"  --dryrun
     fi
