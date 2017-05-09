@@ -4,12 +4,11 @@
 upload_file () {
     source=$1
     dest=$2
-    usrExtension=''
 
-    if [ ! -z $3 ]
-    then
-        usrExtension=$3
-    fi
+    # if [ ! -z $3 ]
+    # then
+    #     usrExtension=$3
+    # fi
     # echo 'upload_file called' $source $dest $usrExtension
 
     if [ -d $source ] 
@@ -17,24 +16,28 @@ upload_file () {
         src=$source'/*'
         for f in $src
         do
-            upload_file $f $dest $usrExtension
+            upload_file $f $dest
         done
     else
-        if [ ${#usrExtension} -ge 1 ]; 
+        if [ ${#callerTypes} -ge 1 ]; 
         then 
-            destFile=${source/.mp3/$usrExtension'.mp3'};
+            destFile="${clientId}${callerTypes}.mp3"
+            # destFile=${source/.mp3/$usrExtension'.mp3'};
         else 
-            destFile=${source/.mp3/'-all.mp3'};
+            destFile="$clientId-all.mp3"
+            # destFile=${source/.mp3/'-all.mp3'};
         fi 
         destFile=${destFile/$sourceDirectory/''}
         # aws s3 cp $source $dest$destFile --dryrun --exclude "*" --include "*.mp3" --recursive --profile marklar # aws for folder upload
-        aws s3 cp $source $dest$destFile --dryrun --profile marklar
+        aws s3 cp $source $dest$destFile  --dryrun
     fi
 }
 
-userExtension=''
+callerTypes=''
 sourceDirectory=''
-while getopts ":d:s:u:" option
+clientId=''
+lang='en'
+while getopts ":s:u:c:l:" option
 do
     case $option in
             s) 
@@ -42,20 +45,25 @@ do
                 src=${OPTARG}
                 SOURCE="$src"
                 ;;
-            d) 
-                #destination folder location
-                DEST=${OPTARG}
-                ;;
             u)
                 #array of specific user list for prompt
-                n=0 ;for i in ${OPTARG}; do userExtension=$userExtension'-'$i; let n++; done ;
+                n=0 ;for i in ${OPTARG}; do callerTypes=$callerTypes'-'$i; let n++; done ;
                 ;;
+            c)
+                # get the clientid
+                clientId=${OPTARG}
+                ;;
+            l)
+                #get the audio lang
+                lang=${OPTARG}
+                ;;
+
     esac
 done
 
-if [ ! -z $DEST ]
+if [ ! -z $clientId ]
 then
-    destFolder="s3://marklar/"$DEST"/"
+    destFolder="s3://marklar/custom/prompts/client/$clientId/$lang/"
     # echo 'dest value is set to' $destFolder
 fi
 
@@ -68,9 +76,9 @@ then
     for f in $SOURCE; 
     do
         sourceFile="$(echo -e "${f}" | tr -d '[:space:]')" #remove the white spaces from file name
-        upload_file $sourceFile $destFolder $userExtension
+        upload_file $sourceFile $destFolder
     done
 else
-    upload_file $SOURCE $destFolder $userExtension
+    upload_file $SOURCE $destFolder
 fi
 
