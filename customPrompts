@@ -1,0 +1,76 @@
+#!/bin/bash
+#!/usr/bin/env bash
+
+upload_file () {
+    source=$1
+    dest=$2
+    usrExtension=''
+
+    if [ ! -z $3 ]
+    then
+        usrExtension=$3
+    fi
+    # echo 'upload_file called' $source $dest $usrExtension
+
+    if [ -d $source ] 
+    then
+        src=$source'/*'
+        for f in $src
+        do
+            upload_file $f $dest $usrExtension
+        done
+    else
+        if [ ${#usrExtension} -ge 1 ]; 
+        then 
+            destFile=${source/.mp3/$usrExtension'.mp3'};
+        else 
+            destFile=${source/.mp3/'-all.mp3'};
+        fi 
+        destFile=${destFile/$sourceDirectory/''}
+        # aws s3 cp $source $dest$destFile --dryrun --exclude "*" --include "*.mp3" --recursive --profile marklar # aws for folder upload
+        aws s3 cp $source $dest$destFile --dryrun --profile marklar
+    fi
+}
+
+userExtension=''
+sourceDirectory=''
+while getopts ":d:s:u:" option
+do
+    case $option in
+            s) 
+                #source File or Directory name
+                src=${OPTARG}
+                SOURCE="$src"
+                ;;
+            d) 
+                #destination folder location
+                DEST=${OPTARG}
+                ;;
+            u)
+                #array of specific user list for prompt
+                n=0 ;for i in ${OPTARG}; do userExtension=$userExtension'-'$i; let n++; done ;
+                ;;
+    esac
+done
+
+if [ ! -z $DEST ]
+then
+    destFolder="s3://marklar/"$DEST"/"
+    # echo 'dest value is set to' $destFolder
+fi
+
+
+# check if source is Directory or File
+if [ -d $SOURCE ] 
+then
+    sourceDirectory=$SOURCE
+    SOURCE=$SOURCE'*'
+    for f in $SOURCE; 
+    do
+        sourceFile="$(echo -e "${f}" | tr -d '[:space:]')" #remove the white spaces from file name
+        upload_file $sourceFile $destFolder $userExtension
+    done
+else
+    upload_file $SOURCE $destFolder $userExtension
+fi
+
