@@ -9,6 +9,7 @@ clientId=''
 lang='en'
 
 LOCAL_DIR="custom/prompts/client/"
+CALLER_TYPE_ARRAYS=( councilmember auditor client )
 
 upload_file () {
     source=$1
@@ -16,7 +17,7 @@ upload_file () {
 
     s3DestFolder="s3://marklar/$dest"
     localFolder=$LOCAL_DIR$clientId
-
+    fileForAllName="$clientId-all.mp3"
     if [ -d $source ] 
     then
         src=$source'/*'
@@ -25,13 +26,6 @@ upload_file () {
             upload_file $f $dest
         done
     else
-        if [ ${#callerTypes} -ge 1 ]; 
-        then 
-            destFile="${clientId}${callerTypes}.mp3"
-        else 
-            destFile="$clientId-all.mp3"
-        fi 
-
         #check for local directory, create if doesnt exist
         if [ ! -d "$localFolder" ];
         then
@@ -43,9 +37,35 @@ upload_file () {
             mkdir "$localFolder/$lang"
         fi
 
+        githubFolderName="$localFolder/$lang/"
+        if [ ${#callerTypes} -ge 1 ]; 
+        then 
+            callerTypes=$(echo "${callerTypes}" | tr '[:upper:]' '[:lower:]') #convert to lower case
+
+            destFile="${clientId}${callerTypes}.mp3"
+            
+            if [  -f $githubFolderName$fileForAllName ]; #if file for all exists delete and rename to remaining caller types
+            then
+                fileName=''
+                #rename -all.mp3 file to specific caller types
+                for i in "${CALLER_TYPE_ARRAYS[@]}"; 
+                do 
+                    if [[ $callerTypes != *$i* ]];
+                    then
+                        fileName=$fileName'-'$i
+                    fi 
+                done ;
+                mv $githubFolderName$fileForAllName "$githubFolderName$clientId$fileName.mp3"
+            fi
+        else 
+            destFile=fileForAllName
+        fi 
+
+
         #copy file to local folder and push it to gitgub
-        cp $source "$localFolder/$lang/$destFile"
-        git add "$localFolder/$lang/$destFile"
+        cp $source "$githubFolderName$destFile"
+
+        git add "$githubFolderName"
         # git commit -m "adding $destFile to $dest"
         #git push origin master
 
