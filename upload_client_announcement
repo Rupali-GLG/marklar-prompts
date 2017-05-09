@@ -1,15 +1,21 @@
 #!/bin/bash
 #!/usr/bin/env bash
 
+
+#set defaults and constants
+callerTypes=''
+sourceDirectory=''
+clientId=''
+lang='en'
+
+LOCAL_DIR="custom/prompts/client/"
+
 upload_file () {
     source=$1
     dest=$2
 
-    # if [ ! -z $3 ]
-    # then
-    #     usrExtension=$3
-    # fi
-    # echo 'upload_file called' $source $dest $usrExtension
+    s3DestFolder="s3://marklar/$dest"
+    localFolder=$LOCAL_DIR$clientId
 
     if [ -d $source ] 
     then
@@ -22,21 +28,30 @@ upload_file () {
         if [ ${#callerTypes} -ge 1 ]; 
         then 
             destFile="${clientId}${callerTypes}.mp3"
-            # destFile=${source/.mp3/$usrExtension'.mp3'};
         else 
             destFile="$clientId-all.mp3"
-            # destFile=${source/.mp3/'-all.mp3'};
         fi 
-        destFile=${destFile/$sourceDirectory/''}
+
+        #check for local directory, create if doesnt exist
+        if [ ! -d "$localFolder" ];
+        then
+            mkdir $localFolder
+        fi
+
+        if [ ! -d "$localFolder/$lang" ];
+        then
+            mkdir "$localFolder/$lang"
+        fi
+
+        #copy file to local folder
+        cp $source "$localFolder/$lang/$destFile"
         # aws s3 cp $source $dest$destFile --dryrun --exclude "*" --include "*.mp3" --recursive --profile marklar # aws for folder upload
-        aws s3 cp $source $dest$destFile  --dryrun
+        aws s3 cp $source "s3://marklar/$dest$destFile"  --dryrun
     fi
 }
 
-callerTypes=''
-sourceDirectory=''
-clientId=''
-lang='en'
+
+#get options
 while getopts ":s:u:c:l:" option
 do
     case $option in
@@ -61,10 +76,10 @@ do
     esac
 done
 
+#create destination folders
 if [ ! -z $clientId ]
 then
-    destFolder="s3://marklar/custom/prompts/client/$clientId/$lang/"
-    # echo 'dest value is set to' $destFolder
+    destFolder="custom/prompts/client/$clientId/$lang/"
 fi
 
 
